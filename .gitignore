@@ -1,0 +1,5 @@
+client_secrets.json
+token.pickle
+vIcmAr_noticias.db
+__pycache__/
+*.pyc

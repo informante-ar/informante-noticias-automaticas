@@ -1,0 +1,28 @@
+name: vIcmAr Auto-Post
+on:
+  schedule:
+    - cron: '0 * * * *' # Esto corre el bot CADA HORA (en el minuto 0)
+  workflow_dispatch: # Esto te permite darle al botón "Play" manualmente
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Descargando repositorio
+        uses: actions/checkout@v3
+
+      - name: Configurando Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Instalando librerías
+        run: |
+          pip install feedparser google-generativeai google-auth-oauthlib google-api-python-client requests groq flask
+
+      - name: Ejecutando vIcmAr
+        env:
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          FB_PAGE_TOKEN: ${{ secrets.FB_PAGE_TOKEN }}
+          # Agregaremos las demás aquí...
+        run: python index.py
