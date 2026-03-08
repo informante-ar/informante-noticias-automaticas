@@ -12,6 +12,18 @@ import datetime
 import os
 
 import os
+
+# Así el bot busca las llaves en los Secretos de GitHub
+GROQ_API_KEY = os.environ.get("GROQ_API_KEY")
+FB_PAGE_TOKEN = os.environ.get("FB_PAGE_TOKEN")
+BLOG_ID = os.environ.get("BLOG_ID")
+
+# Y esto fabrica el archivo de Google que falta
+if "GOOGLE_JSON" in os.environ:
+    with open("client_secrets.json", "w") as f:
+        f.write(os.environ["GOOGLE_JSON"])
+
+import os
 import json
 
 # Al principio de tu función de Blogger:
@@ -407,3 +419,5 @@ if __name__ == "__main__":
         print("[OK] Proceso finalizado con éxito.")
     except Exception as e:
         print(f"[ERROR]: {e}")
+        
+        
