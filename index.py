@@ -67,21 +67,30 @@ def inicializar_db():
 def transformar_con_ia(titulo, resumen):
     try:
         # Filtramos clima y pronostico para que no vaya al Blog (ya tenemos la funcion publicar_clima para FB)
-        if any(palabra in titulo.lower() for palabra in ["quiniela", "sorteo", "lotería", "clima", "pronostico", "pronóstico"]):
+        if any(palabra in titulo.lower() for palabra in ["quiniela", "sorteo", "lotería", "clima", "pronostico", "pronóstico", "tiempo", "alerta", "lluvia", "viento", "temperatura", "nevada"]):
             return None, None
 
         prompt = f"""
-        Actúa como un experto en SEO y periodista digital. Reescribe esta noticia para el blog 'informARte' optimizando para motores de búsqueda.
+        Actúa como el Editor en Jefe de "vIcmAr Noticias". Tu estilo es dinámico, informativo y directo.
+        
         Título original: {titulo}
         Resumen: {resumen}
         
-        REGLAS DE FORMATO Y SEO:
-        1. Primera línea: SOLO el título reescrito (texto plano, SIN HTML). NO escribas "Título:", "Título atractivo:" ni uses comillas o asteriscos (**).
-        2. Estructura HTML (SOLO para el cuerpo): Usa <h2> para subtítulos (importante para SEO), <p> para párrafos, <ul>/<li> para listas.
-        3. Intro SEO: El primer párrafo debe ser un resumen impactante (Lead) en <strong> que contenga las palabras clave principales.
-        4. NO uses Markdown (**negrita**). Usa siempre HTML (<strong>negrita</strong>).
-        5. Legibilidad: Usa párrafos cortos y lenguaje natural, dale un estilo moderno.
-        6. Localización: Si menciona Comodoro Rivadavia, Chubut o Argentina, resáltalo.
+        REGLAS DE ORO PARA EL POST:
+        1. FORMATO TÉCNICO (OBLIGATORIO):
+           - Primera línea: SOLO el TITULAR reescrito (Texto plano). NO escribas "Título:", "Noticia reeditada" ni uses comillas.
+           - Resto: Cuerpo de la noticia en HTML (<p>, <ul>, <li>, <strong>). NO uses Markdown.
+
+        2. ESTRUCTURA DEL CONTENIDO:
+           - TITULAR: En MAYÚSCULAS y con GANCHO. PROHIBIDO poner "Noticia reeditada" o "Resumen".
+           - 🕒 <strong>Lectura rápida:</strong> Lista <ul> con 3 puntos clave <li> usando emojis.
+           - 📝 <strong>El desarrollo:</strong> Un texto explicativo y atrapante (más detallado para el blog) <p>.
+           - � <strong>Relevancia:</strong> Si afecta a Argentina o Comodoro Rivadavia, resáltalo con orgullo local.
+           - 🗣️ <strong>Debate:</strong> Termina SIEMPRE con una pregunta abierta para generar comentarios <p>.
+
+        3. PERSONALIDAD:
+           - Usá un lenguaje profesional pero con "voseo" sutil (ej: "Enterate", "Contanos").
+           - Evitá palabras muy técnicas; hablá para la gente de la calle.
         """
         
         completion = client.chat.completions.create(
@@ -247,6 +256,8 @@ def obtener_hashtags(url_fuente):
         return "#Musica #Artistas #Show"
     elif "ambito" in url_fuente or "lanacion" in url_fuente:
         return "#Economia #Dolar #Finanzas"
+    elif "bbc" in url_fuente or "cnn" in url_fuente or "dw.com" in url_fuente:
+        return "#Mundo #Internacional #Global #Actualidad"
     else:
         return "#Actualidad #Argentina #Noticias"
 
@@ -323,6 +334,11 @@ def ejecutar_bot(url_rss):
         elif hasattr(entry, 'enclosures') and entry.enclosures:
             imagen = entry.enclosures[0]['href']
             
+        # --- FILTRO DE IMAGEN OBLIGATORIA ---
+        if not imagen:
+            print(f"[SKIP] La noticia '{entry.title}' no tiene imagen. Buscando otra...")
+            continue
+            
         # Generar contenido con IA
         nuevo_titulo, cuerpo = transformar_con_ia(entry.title, getattr(entry, 'summary', ''))
         
@@ -356,6 +372,11 @@ def iniciar_escaneo():
         "https://www.elpatagonico.com/rss/pages/chubut.xml",
         "https://elcomodorense.net/feed/",
         "https://radio3cadenapatagonia.com.ar/feed/",
+
+        # --- MUNDO GLOBAL E INTERESANTE ---
+        "http://feeds.bbci.co.uk/mundo/rss.xml", # BBC Mundo
+        "https://cnnespanol.cnn.com/feed/",      # CNN en Español
+        "https://rss.dw.com/xml/rss-sp-all",     # DW Español
         
         # --- TECNOLOGÍA ---
         "https://www.clarin.com/rss/tecnologia/",
