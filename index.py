@@ -11,6 +11,11 @@ from groq import Groq
 import datetime
 import os
 
+# --- GENERADOR DE LLAVES PARA LA NUBE ---
+if "GOOGLE_JSON" in os.environ:
+    with open("client_secrets.json", "w") as f:
+        f.write(os.environ["GOOGLE_JSON"])
+
 # Si estamos en GitHub Actions, creamos el archivo JSON desde el secreto
 if "GOOGLE_JSON" in os.environ:
     print("[INFO] Generando archivo de credenciales de Google...")
