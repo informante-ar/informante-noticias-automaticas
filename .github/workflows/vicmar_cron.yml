@@ -27,3 +27,14 @@ jobs:
           BLOG_ID: ${{ secrets.BLOG_ID }}
           GOOGLE_JSON: ${{ secrets.GOOGLE_JSON }}
         run: python index.py
+
+      - name: Guardar cambios en DB
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "Actualizar base de datos de noticias [skip ci]"
+          file_pattern: "*.db"
+          commit_user_name: "Bot Noticias"
+          commit_user_email: "actions@github.com"
+          push_options: '--force'
+          skip_dirty_check: false
+          branch: main
