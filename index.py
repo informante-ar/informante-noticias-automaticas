@@ -12,14 +12,18 @@ import datetime
 import os
 import json
 
-# --- GENERADOR DE LLAVES PARA LA NUBE ---
+# --- GENERADOR DE LLAVES SEGURO ---
+import os
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+secrets_path = os.path.join(BASE_DIR, 'client_secrets.json')
+
 if "GOOGLE_JSON" in os.environ:
-    print("[INFO] Generando archivo de credenciales de Google...")
-    with open("client_secrets.json", "w") as f:
+    print(f"[INFO] Generando credenciales en: {secrets_path}")
+    with open(secrets_path, "w") as f:
         f.write(os.environ["GOOGLE_JSON"])
 else:
-    print("[INFO] Modo local: Buscando client_secrets.json...")
-
+    print("[INFO] Usando archivo local si existe...")
 # --- 1. CONFIGURACIÓN ---
 # Así el bot busca las llaves en los Secretos de GitHub (o usa las locales por defecto)
 GROQ_API_KEY = os.environ.get("GROQ_API_KEY")
