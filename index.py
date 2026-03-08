@@ -48,13 +48,18 @@ client = Groq(api_key=GROQ_API_KEY)
 
 # --- 2. BASE DE DATOS ---
 def inicializar_db():
-    conn = sqlite3.connect('vIcmAr_noticias.db')
-    db_path = os.path.join(BASE_DIR, 'vIcmAr_noticias.db')
+    # Esto asegura que el archivo se cree en la carpeta raíz del bot
+    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+    db_path = os.path.join(BASE_DIR, 'vIcmAr_noticias.db') # O vIcmAr_curiosidades.db
+    
+    print(f"[DEBUG] La base de datos se creará en: {db_path}")
+    
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
     cursor.execute('''CREATE TABLE IF NOT EXISTS posts (id_noticia TEXT PRIMARY KEY)''')
     conn.commit()
     return conn
+
 
 # --- 3. REDACCIÓN CON IA ---
 def transformar_con_ia(titulo, resumen):
