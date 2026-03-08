@@ -24,5 +24,6 @@ jobs:
         env:
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           FB_PAGE_TOKEN: ${{ secrets.FB_PAGE_TOKEN }}
-          # Agregaremos las demás aquí...
+          BLOG_ID: ${{ secrets.BLOG_ID }}
+          GOOGLE_JSON: ${{ secrets.GOOGLE_JSON }}
         run: python index.py

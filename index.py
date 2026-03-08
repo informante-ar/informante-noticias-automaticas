@@ -11,30 +11,15 @@ from groq import Groq
 import datetime
 import os
 
-import os
-
-# Así el bot busca las llaves en los Secretos de GitHub
-GROQ_API_KEY = os.environ.get("GROQ_API_KEY")
-FB_PAGE_TOKEN = os.environ.get("FB_PAGE_TOKEN")
-BLOG_ID = os.environ.get("BLOG_ID")
-
-# Y esto fabrica el archivo de Google que falta
+# Si estamos en GitHub Actions, creamos el archivo JSON desde el secreto
 if "GOOGLE_JSON" in os.environ:
+    print("[INFO] Generando archivo de credenciales de Google...")
     with open("client_secrets.json", "w") as f:
         f.write(os.environ["GOOGLE_JSON"])
 
-import os
-import json
-
-# Al principio de tu función de Blogger:
-if "GOOGLE_SECRETS" in os.environ:
-    with open("client_secrets.json", "w") as f:
-        f.write(os.environ["GOOGLE_SECRETS"])
-
-
-
 # --- 1. CONFIGURACIÓN ---
-GROQ_API_KEY = "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"
+# Así el bot busca las llaves en los Secretos de GitHub (o usa las locales por defecto)
+GROQ_API_KEY = os.environ.get("GROQ_API_KEY", "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")
 MODELO = "llama-3.1-8b-instant"
 
 # Directorio base (para que funcione en PythonAnywhere sin perderse)
@@ -47,8 +32,9 @@ MI_GMAIL_APP_PASSWORD = "hite ajcz ufre hmnj"
 URL_BLOG = "https://informantear.blogspot.com/" # ⚠️ VERIFICÁ QUE ESTE SEA TU LINK EXACTO
 
 # Datos Facebook (IMPORTANTE: Usa el token de PÁGINA que sacamos)
-FB_PAGE_TOKEN = "EAAUycAE8pgkBQ2LC4eqKe4rPj4BLJzIZAIOGyDEZCM1PXx821UqCd2rQlwBuvc04u0DKxfdKn1DZAHbK90u59URrCqZAWvVPzo4cfREMYiNkuxOg897dHeGqOwAZAVqhTWZCtvX0DGUDDHKF2ZCG4fEvotAZCvR33u6OILWZBnIZB7ZAfW4SQZCuyzJHQyJDpHZCJMQpiXLrjJ7TD"
+FB_PAGE_TOKEN = os.environ.get("FB_PAGE_TOKEN", "EAAUycAE8pgkBQ2LC4eqKe4rPj4BLJzIZAIOGyDEZCM1PXx821UqCd2rQlwBuvc04u0DKxfdKn1DZAHbK90u59URrCqZAWvVPzo4cfREMYiNkuxOg897dHeGqOwAZAVqhTWZCtvX0DGUDDHKF2ZCG4fEvotAZCvR33u6OILWZBnIZB7ZAfW4SQZCuyzJHQyJDpHZCJMQpiXLrjJ7TD")
 FB_PAGE_ID = "me" # "me" funciona si el token es de la página
+BLOG_ID = os.environ.get("BLOG_ID", "166823084082098901")
 
 client = Groq(api_key=GROQ_API_KEY)
 
@@ -159,7 +145,6 @@ def publicar_en_blogger_api(titulo, contenido_html, imagen_url):
     
     try:
         service = obtener_servicio_blogger()
-        BLOG_ID = "166823084082098901" 
         
         body = {
             "kind": "blogger#post",
