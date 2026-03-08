@@ -16,6 +16,9 @@ if "GOOGLE_JSON" in os.environ:
     print("[INFO] Generando archivo de credenciales de Google...")
     with open("client_secrets.json", "w") as f:
         f.write(os.environ["GOOGLE_JSON"])
+else:
+    if not os.path.exists("client_secrets.json"):
+        print("[ALERTA] No se detectó el secreto GOOGLE_JSON ni el archivo local. Blogger podría fallar.")
 
 # --- 1. CONFIGURACIÓN ---
 # Así el bot busca las llaves en los Secretos de GitHub (o usa las locales por defecto)
@@ -106,15 +109,22 @@ def obtener_servicio_blogger():
     
     # Guardamos el "permiso" en un archivo para no tener que loguearnos cada vez
     if os.path.exists(token_path):
+        print("[INFO] Cargando token de sesión de Blogger...")
         with open(token_path, 'rb') as token:
             creds = pickle.load(token)
+    else:
+        print("[ALERTA] No se encontró 'token.pickle'. El bot intentará abrir un navegador (fallará en la nube).")
             
     if not creds or not creds.valid:
         if creds and creds.expired and creds.refresh_token:
+            print("[INFO] Refrescando token de Google...")
             creds.refresh(Request())
         else:
             # Aquí es donde usamos el archivo que bajaste de Google Cloud
-            # IMPORTANTE: En PythonAnywhere esto fallará si no subes el token.pickle
+            # IMPORTANTE: En GitHub Actions esto fallará si no subes el token.pickle
+            if not os.path.exists(secrets_path):
+                print("[ERROR] No existe client_secrets.json ni token válido. No se puede autenticar en Blogger.")
+                return None
             flow = InstalledAppFlow.from_client_secrets_file(secrets_path, scopes)
             creds = flow.run_local_server(port=0)
             
@@ -145,6 +155,9 @@ def publicar_en_blogger_api(titulo, contenido_html, imagen_url):
     
     try:
         service = obtener_servicio_blogger()
+        if not service:
+            print("[ERROR] Saltando publicación en Blogger por falta de credenciales.")
+            return False
         
         body = {
             "kind": "blogger#post",
