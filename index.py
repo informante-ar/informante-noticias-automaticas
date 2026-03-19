@@ -79,18 +79,18 @@ def transformar_con_ia(titulo, resumen):
         REGLAS DE ORO PARA EL POST:
         1. FORMATO TÉCNICO (OBLIGATORIO):
            - Primera línea: SOLO el TITULAR reescrito (Texto plano). NO escribas "Título:", "Noticia reeditada" ni uses comillas.
-           - Resto: Cuerpo de la noticia en HTML (<p>, <ul>, <li>, <strong>). NO uses Markdown.
+           - Resto: Cuerpo de la noticia en HTML (<p>, <ul>, <li>, <strong>). NO uses Markdown ni asteriscos.
 
         2. ESTRUCTURA DEL CONTENIDO:
-           - TITULAR: En MAYÚSCULAS y con GANCHO. PROHIBIDO poner "Noticia reeditada" o "Resumen".
-           - 🕒 <strong>Lectura rápida:</strong> Lista <ul> con 3 puntos clave <li> usando emojis.
-           - 📝 <strong>El desarrollo:</strong> Un texto explicativo y atrapante (más detallado para el blog) <p>.
-           - � <strong>Relevancia:</strong> Si afecta a Argentina o Comodoro Rivadavia, resáltalo con orgullo local.
-           - 🗣️ <strong>Debate:</strong> Termina SIEMPRE con una pregunta abierta para generar comentarios <p>.
+           - TITULAR: En MAYÚSCULAS y con INTRIGA EXTREMA (estilo viral). PROHIBIDO poner "Noticia reeditada" o "Resumen". El usuario DEBE sentir curiosidad por saber más.
+           - 🕒 <strong>El Dato Clave:</strong> Lista <ul> con 3 puntos muy breves <li> usando emojis. No cuentes el final de la noticia, deja misterio.
+           - � <strong>El desarrollo:</strong> Un texto explicativo y atrapante (más detallado para el blog) <p>.
+           -  <strong>Relevancia:</strong> Si es de Comodoro Rivadavia o Chubut, usa un tono de "Vecino a Vecino", muy cercano y barrial.
+           - 🗣️ <strong>Debate Polémico:</strong> Termina SIEMPRE con una pregunta abierta y controversial que obligue a la gente a comentar indignada o a favor <p>.
 
         3. PERSONALIDAD:
-           - Usá un lenguaje profesional pero con "voseo" sutil (ej: "Enterate", "Contanos").
-           - Evitá palabras muy técnicas; hablá para la gente de la calle.
+           - Usá un lenguaje muy coloquial, 100% argentino, con "voseo" directo (ej: "Mirá esto", "No lo vas a creer", "Contanos qué opinás").
+           - Evitá palabras técnicas; hablá como si estuvieras en un café charlando.
         """
         
         completion = client.chat.completions.create(
@@ -213,9 +213,9 @@ def publicar_en_facebook(titulo, cuerpo_ia, imagen_url, hashtags="", incluir_lin
     
     # CTA (Llamada a la acción) más fuerte para generar CLICS (Dinero)
     if incluir_link:
-        mensaje_final = f"📌 {titulo}\n\n{texto_fb}\n\n👇 LEÉ LA NOTA COMPLETA ACÁ 👇\n{URL_BLOG}\n\n{hashtags}"
+        mensaje_final = f" {titulo}\n\n{texto_fb}\n\n👇 ¡NO TE QUEDES A MEDIAS! LEÉ LA NOTA COMPLETA ACÁ 👇\n{URL_BLOG}\n\n{hashtags}"
     else:
-        mensaje_final = f"📌 {titulo}\n\n{texto_fb}\n\n{hashtags}"
+        mensaje_final = f"🚨 {titulo}\n\n{texto_fb}\n\n🗣️ ¡Dejanos tu comentario abajo, te leemos!\n\n{hashtags}"
     
     # Lógica para imagen: Usamos /photos si hay imagen (se ve más grande y bonita), sino /feed
     if imagen_url:
@@ -349,9 +349,13 @@ def ejecutar_bot(url_rss):
             # Intentamos publicar en Blogger
             exito_blogger = publicar_en_blogger_api(nuevo_titulo, cuerpo, imagen)
             
+            # ESTRATEGIA ALGORITMO: 30% de las veces NO ponemos link en Facebook para ganar alcance orgánico
+            # Si siempre ponemos link, Facebook nos limita.
+            poner_link_fb = random.random() < 0.7 
+            
             if exito_blogger:
                 print("[OK] Publicado en Blogger")
-                publicar_en_facebook(nuevo_titulo, cuerpo, imagen, tags, incluir_link=True)
+                publicar_en_facebook(nuevo_titulo, cuerpo, imagen, tags, incluir_link=poner_link_fb)
             else:
                 print("[ALERTA] Falló Blogger (posible cuota), publicando solo en Facebook...")
                 publicar_en_facebook(nuevo_titulo, cuerpo, imagen, tags, incluir_link=False)
@@ -403,7 +407,7 @@ def iniciar_escaneo():
     random.shuffle(lista_fuentes)
     
     publicaciones_ciclo = 0
-    LIMITE_CICLO = 3 # Máximo de noticias a publicar por ciclo (cada 30 min)
+    LIMITE_CICLO = 1 # BAJAMOS EL LÍMITE: 1 noticia por hora es mucho mejor para evitar ser marcado como SPAM.
     
     print("[INFO] --- Iniciando ciclo de noticias vIcmAr ---")
     
