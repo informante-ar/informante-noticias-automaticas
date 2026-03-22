@@ -32,11 +32,7 @@ MODELO = "llama-3.1-8b-instant"
 # Directorio base (para que funcione en PythonAnywhere sin perderse)
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-# Datos Blogger
-EMAIL_DESTINO_BLOGGER = "victormarsilli18.victorruben1@blogger.com"
-MI_GMAIL = "victormarsilli18@gmail.com"
-MI_GMAIL_APP_PASSWORD = "hite ajcz ufre hmnj" 
-URL_BLOG = "https://informantear.blogspot.com/" # ⚠️ VERIFICÁ QUE ESTE SEA TU LINK EXACTO
+
 
 # Datos Facebook (IMPORTANTE: Usa el token de PÁGINA que sacamos)
 FB_PAGE_TOKEN = os.environ.get("FB_PAGE_TOKEN")
