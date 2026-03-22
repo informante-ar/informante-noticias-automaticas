@@ -34,8 +34,8 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 # Datos Blogger
 EMAIL_DESTINO_BLOGGER = "victormarsilli18.victorruben1@blogger.com"
-MI_GMAIL = "victormarsilli18@gmail.com"
-MI_GMAIL_APP_PASSWORD = "hite ajcz ufre hmnj" 
+MI_GMAIL = os.environ.get("MI_GMAIL", "victormarsilli18@gmail.com")
+MI_GMAIL_APP_PASSWORD = os.environ.get("MI_GMAIL_APP_PASSWORD") 
 URL_BLOG = "https://informantear.blogspot.com/" # ⚠️ VERIFICÁ QUE ESTE SEA TU LINK EXACTO
 
 # Datos Facebook (IMPORTANTE: Usa el token de PÁGINA que sacamos)
