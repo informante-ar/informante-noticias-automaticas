@@ -122,15 +122,18 @@ def obtener_servicio_blogger():
     token_path = os.path.join(BASE_DIR, 'token.pickle')
     secrets_path = os.path.join(BASE_DIR, 'client_secrets.json')
     
-    # 1. Intentar usar Refresh Token desde variables de entorno (GitHub Actions)
-    if "GOOGLE_REFRESH_TOKEN" in os.environ and "GOOGLE_JSON" in os.environ:
+    refresh_token = os.environ.get("GOOGLE_REFRESH_TOKEN", "").strip()
+    google_json = os.environ.get("GOOGLE_JSON", "").strip()
+
+    # 1. Intentar usar Refresh Token si está configurado en GitHub Actions
+    if refresh_token and google_json:
         print("[INFO] Usando GOOGLE_REFRESH_TOKEN desde GitHub Secrets...")
-        client_info = json.loads(os.environ["GOOGLE_JSON"])
+        client_info = json.loads(google_json)
         client_data = client_info.get("installed", client_info.get("web", {}))
         
         creds = Credentials(
             token=None,
-            refresh_token=os.environ["GOOGLE_REFRESH_TOKEN"],
+            refresh_token=refresh_token,
             token_uri=client_data.get("token_uri", "https://oauth2.googleapis.com/token"),
             client_id=client_data.get("client_id"),
             client_secret=client_data.get("client_secret"),
