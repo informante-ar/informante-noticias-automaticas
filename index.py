@@ -1,10 +1,7 @@
 import feedparser
 import sqlite3
 import requests
-import smtplib
 import time
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
 import re
 import random
 from groq import Groq
@@ -33,9 +30,6 @@ MODELO = "llama-3.1-8b-instant"
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 # Datos Blogger
-EMAIL_DESTINO_BLOGGER = "victormarsilli18.victorruben1@blogger.com"
-MI_GMAIL = os.environ.get("MI_GMAIL", "victormarsilli18@gmail.com")
-MI_GMAIL_APP_PASSWORD = os.environ.get("MI_GMAIL_APP_PASSWORD") 
 URL_BLOG = "https://informantear.blogspot.com/" # ⚠️ VERIFICÁ QUE ESTE SEA TU LINK EXACTO
 
 # Datos Facebook (IMPORTANTE: Usa el token de PÁGINA que sacamos)
@@ -84,7 +78,7 @@ def transformar_con_ia(titulo, resumen):
         2. ESTRUCTURA DEL CONTENIDO:
            - TITULAR: En MAYÚSCULAS y con INTRIGA EXTREMA (estilo viral). PROHIBIDO poner "Noticia reeditada" o "Resumen". El usuario DEBE sentir curiosidad por saber más.
            - 🕒 <strong>El Dato Clave:</strong> Lista <ul> con 3 puntos muy breves <li> usando emojis. No cuentes el final de la noticia, deja misterio.
-           - � <strong>El desarrollo:</strong> Un texto explicativo y atrapante (más detallado para el blog) <p>.
+           - 📝 <strong>El desarrollo:</strong> Un texto explicativo y atrapante (más detallado para el blog) <p>.
            -  <strong>Relevancia:</strong> Si es de Comodoro Rivadavia o Chubut, usa un tono de "Vecino a Vecino", muy cercano y barrial.
            - 🗣️ <strong>Debate Polémico:</strong> Termina SIEMPRE con una pregunta abierta y controversial que obligue a la gente a comentar indignada o a favor <p>.
 
@@ -188,8 +182,9 @@ def publicar_en_blogger_api(titulo, contenido_html, imagen_url):
         # Reintentos ante error de cuota (429)
         for i in range(3):
             try:
-                service.posts().insert(blogId=BLOG_ID, body=body).execute()
-                return True
+                # Guardamos la respuesta de la API para extraer el Link exacto de esta noticia
+                respuesta_blog = service.posts().insert(blogId=BLOG_ID, body=body).execute()
+                return respuesta_blog.get('url') # Retornamos la URL exacta del post
             except HttpError as e:
                 if e.resp.status == 429:
                     print(f"[ALERTA] Cuota Blogger excedida. Esperando {60*(i+1)}s...")
@@ -201,7 +196,7 @@ def publicar_en_blogger_api(titulo, contenido_html, imagen_url):
         print(f"[ERROR] API Blogger: {e}")
         return False
 
-def publicar_en_facebook(titulo, cuerpo_ia, imagen_url, hashtags="", incluir_link=True):
+def publicar_en_facebook(titulo, cuerpo_ia, imagen_url, hashtags="", link_nota=""):
     # Mejoramos el formato: convertimos etiquetas HTML útiles a texto antes de limpiar
     texto_formateado = cuerpo_ia.replace('<li>', '• ').replace('</li>', '\n')
     texto_formateado = texto_formateado.replace('<p>', '').replace('</p>', '\n')
@@ -211,11 +206,9 @@ def publicar_en_facebook(titulo, cuerpo_ia, imagen_url, hashtags="", incluir_lin
     texto_limpio = re.sub('<[^<]+?>', '', texto_formateado)
     texto_fb = "\n\n".join([line.strip() for line in texto_limpio.splitlines() if line.strip()])
     
-    # CTA (Llamada a la acción) más fuerte para generar CLICS (Dinero)
-    if incluir_link:
-        mensaje_final = f" {titulo}\n\n{texto_fb}\n\n👇 ¡NO TE QUEDES A MEDIAS! LEÉ LA NOTA COMPLETA ACÁ 👇\n{URL_BLOG}\n\n{hashtags}"
-    else:
-        mensaje_final = f"🚨 {titulo}\n\n{texto_fb}\n\n🗣️ ¡Dejanos tu comentario abajo, te leemos!\n\n{hashtags}"
+    # TRUCO ALGORITMO: NUNCA ponemos el link en el cuerpo principal.
+    # Anunciamos que el link está en el primer comentario.
+    mensaje_final = f"🚨 {titulo}\n\n{texto_fb}\n\n🗣️ ¡Dejanos tu comentario abajo, te leemos!\n👇 (Link de la nota completa en el primer comentario) 👇\n\n{hashtags}"
     
     # Lógica para imagen: Usamos /photos si hay imagen (se ve más grande y bonita), sino /feed
     if imagen_url:
@@ -236,6 +229,19 @@ def publicar_en_facebook(titulo, cuerpo_ia, imagen_url, hashtags="", incluir_lin
         r = requests.post(url, data=payload)
         resultado = r.json()
         if r.status_code == 200:
+            # Obtenemos el ID del post que acabamos de crear
+            post_id = resultado.get('post_id') or resultado.get('id')
+            
+            # Si tenemos el link de Blogger, publicamos un comentario en nuestro propio post
+            if post_id and link_nota:
+                print("[INFO] Agregando el link en el primer comentario...")
+                url_comment = f"https://graph.facebook.com/v19.0/{post_id}/comments"
+                comentario_payload = {
+                    'message': f"📰 ¡Leé la nota completa con todos los detalles haciendo clic acá! 👇\n{link_nota}",
+                    'access_token': FB_PAGE_TOKEN
+                }
+                requests.post(url_comment, data=comentario_payload)
+                
             print("[OK] Publicado en Facebook con exito!")
         else:
             # Si vuelve a fallar, el error nos dirá exactamente qué permiso falta
@@ -347,18 +353,14 @@ def ejecutar_bot(url_rss):
         
         if nuevo_titulo and cuerpo:
             # Intentamos publicar en Blogger
-            exito_blogger = publicar_en_blogger_api(nuevo_titulo, cuerpo, imagen)
+            link_nota = publicar_en_blogger_api(nuevo_titulo, cuerpo, imagen) # Ahora retorna la URL real
             
-            # ESTRATEGIA ALGORITMO: 30% de las veces NO ponemos link en Facebook para ganar alcance orgánico
-            # Si siempre ponemos link, Facebook nos limita.
-            poner_link_fb = random.random() < 0.7 
-            
-            if exito_blogger:
+            if link_nota: # Si devolvió el link, se publicó exitosamente
                 print("[OK] Publicado en Blogger")
-                publicar_en_facebook(nuevo_titulo, cuerpo, imagen, tags, incluir_link=poner_link_fb)
+                publicar_en_facebook(nuevo_titulo, cuerpo, imagen, tags, link_nota=link_nota)
             else:
                 print("[ALERTA] Falló Blogger (posible cuota), publicando solo en Facebook...")
-                publicar_en_facebook(nuevo_titulo, cuerpo, imagen, tags, incluir_link=False)
+                publicar_en_facebook(nuevo_titulo, cuerpo, imagen, tags, link_nota="")
 
             # Guardamos en DB para no repetir (ya sea que salió en Blogger o solo en FB)
             cursor.execute("INSERT INTO posts VALUES (?)", (guid,))
@@ -407,7 +409,7 @@ def iniciar_escaneo():
     random.shuffle(lista_fuentes)
     
     publicaciones_ciclo = 0
-    LIMITE_CICLO = 1 # BAJAMOS EL LÍMITE: 1 noticia por hora es mucho mejor para evitar ser marcado como SPAM.
+    LIMITE_CICLO = 1 # RECOMENDACIÓN: Ejecutar el bot cada 3 o 4 horas (Max 4-6 noticias al día) para no ser SPAM y evitar canibalización.
     
     print("[INFO] --- Iniciando ciclo de noticias vIcmAr ---")
     
