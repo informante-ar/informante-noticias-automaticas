@@ -112,6 +112,7 @@ from googleapiclient.discovery import build
 from google.auth.transport.requests import Request
 from googleapiclient.errors import HttpError
 import pickle
+from google.oauth2.credentials import Credentials
 
 # Esta función se encarga de entrar a tu Blogger sin usar mails
 def obtener_servicio_blogger():
@@ -121,29 +122,49 @@ def obtener_servicio_blogger():
     token_path = os.path.join(BASE_DIR, 'token.pickle')
     secrets_path = os.path.join(BASE_DIR, 'client_secrets.json')
     
-    # Guardamos el "permiso" en un archivo para no tener que loguearnos cada vez
-    if os.path.exists(token_path):
+    # 1. Intentar usar Refresh Token desde variables de entorno (GitHub Actions)
+    if "GOOGLE_REFRESH_TOKEN" in os.environ and "GOOGLE_JSON" in os.environ:
+        print("[INFO] Usando GOOGLE_REFRESH_TOKEN desde GitHub Secrets...")
+        client_info = json.loads(os.environ["GOOGLE_JSON"])
+        client_data = client_info.get("installed", client_info.get("web", {}))
+        
+        creds = Credentials(
+            token=None,
+            refresh_token=os.environ["GOOGLE_REFRESH_TOKEN"],
+            token_uri=client_data.get("token_uri", "https://oauth2.googleapis.com/token"),
+            client_id=client_data.get("client_id"),
+            client_secret=client_data.get("client_secret"),
+            scopes=scopes
+        )
+
+    # 2. Si no hay variables, intentamos cargar token.pickle local
+    elif os.path.exists(token_path):
         print("[INFO] Cargando token de sesión de Blogger...")
         with open(token_path, 'rb') as token:
             creds = pickle.load(token)
     else:
         print("[ALERTA] No se encontró 'token.pickle'. El bot intentará abrir un navegador (fallará en la nube).")
             
+    # 3. Validar o actualizar credenciales
     if not creds or not creds.valid:
-        if creds and creds.expired and creds.refresh_token:
+        if creds and creds.refresh_token:
             print("[INFO] Refrescando token de Google...")
             creds.refresh(Request())
         else:
-            # Aquí es donde usamos el archivo que bajaste de Google Cloud
-            # IMPORTANTE: En GitHub Actions esto fallará si no subes el token.pickle
             if not os.path.exists(secrets_path):
                 print("[ERROR] No existe client_secrets.json ni token válido. No se puede autenticar en Blogger.")
                 return None
             flow = InstalledAppFlow.from_client_secrets_file(secrets_path, scopes)
             creds = flow.run_local_server(port=0)
             
-        with open(token_path, 'wb') as token:
-            pickle.dump(creds, token)
+        # Solo guardamos el token.pickle si estamos en local (no en Actions con REFRESH_TOKEN)
+        if "GOOGLE_REFRESH_TOKEN" not in os.environ:
+            with open(token_path, 'wb') as token:
+                pickle.dump(creds, token)
+                
+        # Mostrar token por consola para que el usuario pueda configurarlo
+        if creds.refresh_token and "GOOGLE_REFRESH_TOKEN" not in os.environ:
+            print(f"\n[IMPORTANTE] Copia este código y guárdalo en GitHub Secrets como 'GOOGLE_REFRESH_TOKEN':\n\n{creds.refresh_token}\n")
             
     return build('blogger', 'v3', credentials=creds)
 

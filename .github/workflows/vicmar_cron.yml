@@ -20,7 +20,7 @@ jobs:
       - name: Configurando Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.10'
+          python-version: '3.11' # Actualizado para evitar el warning de Google API
 
       - name: Instalando librerías
         run: |
@@ -32,6 +32,7 @@ jobs:
           FB_PAGE_TOKEN: ${{ secrets.FB_PAGE_TOKEN }}
           BLOG_ID: ${{ secrets.BLOG_ID }}
           GOOGLE_JSON: ${{ secrets.GOOGLE_JSON }}
+          GOOGLE_REFRESH_TOKEN: ${{ secrets.GOOGLE_REFRESH_TOKEN }}
         run: python index.py
 
       - name: Guardar cambios en DB
