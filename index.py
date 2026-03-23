@@ -37,7 +37,7 @@ FB_PAGE_TOKEN = os.environ.get("FB_PAGE_TOKEN")
 FB_PAGE_ID = "me" # "me" funciona si el token es de la página
 BLOG_ID = os.environ.get("BLOG_ID")
 
-client = Groq(api_key=GROQ_API_KEY)
+client = Groq(api_key=GROQ_API_KEY) if GROQ_API_KEY else None
 
 
 # --- 2. BASE DE DATOS ---
@@ -59,6 +59,10 @@ def inicializar_db():
 
 # --- 3. REDACCIÓN CON IA ---
 def transformar_con_ia(titulo, resumen):
+    if not client:
+        print("[ALERTA] No se detectó GROQ_API_KEY. Saltando la redacción con IA...")
+        return None, None
+
     try:
         # Filtramos clima y pronostico para que no vaya al Blog (ya tenemos la funcion publicar_clima para FB)
         if any(palabra in titulo.lower() for palabra in ["quiniela", "sorteo", "lotería", "clima", "pronostico", "pronóstico", "tiempo", "alerta", "lluvia", "viento", "temperatura", "nevada"]):
@@ -157,6 +161,13 @@ def obtener_servicio_blogger():
             if not os.path.exists(secrets_path):
                 print("[ERROR] No existe client_secrets.json ni token válido. No se puede autenticar en Blogger.")
                 return None
+                
+            # Prevenir intento de abrir navegador si estamos en la nube (GitHub Actions)
+            if os.environ.get("GITHUB_ACTIONS"):
+                print("[ERROR] Ejecutando en GitHub Actions, pero GOOGLE_REFRESH_TOKEN está vacío.")
+                print("[ERROR] Por favor, genera el token localmente y guárdalo en los Secrets de GitHub.")
+                return None
+
             flow = InstalledAppFlow.from_client_secrets_file(secrets_path, scopes)
             creds = flow.run_local_server(port=0)
             
@@ -475,6 +486,9 @@ def iniciar_escaneo():
 if __name__ == "__main__":
     print(f"--- [vIcmAr CLOUD] ---")
     try:
+        # Forzar el chequeo de credenciales de Google antes de hacer cualquier otra cosa
+        obtener_servicio_blogger()
+        
         iniciar_escaneo() # Corre una vez y termina
         print("[OK] Proceso finalizado con éxito.")
     except Exception as e:
